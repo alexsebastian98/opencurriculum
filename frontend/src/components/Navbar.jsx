@@ -4,9 +4,11 @@ import { Link } from 'react-router-dom'
 const THEME_KEY = 'oc-theme'
 
 export default function Navbar() {
-  const [theme, setTheme] = useState(() =>
-    document.documentElement.classList.contains('dark') ? 'dark' : 'light'
-  )
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem('oc-theme')
+    if (saved) return saved
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  })
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')

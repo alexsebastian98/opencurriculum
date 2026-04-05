@@ -151,6 +151,7 @@ async function enrichBookMetadata({ title, author }) {
   }
 
   metadata.metadata_updated_at = metadata.metadata_source ? new Date() : null;
+  if (!metadata.author) metadata.author = 'Unknown Author';
   cache.set(cacheKey, metadata, 60 * 60 * 24);
   return metadata;
 }

@@ -110,7 +110,7 @@ async function run() {
       if (!exists) {
         await Book.create({
           title: book.title,
-          author: metadata?.author || book.author,
+          author: metadata?.author || book.author || 'Unknown Author',
           subject_id: subject._id,
           source: 'github',
           source_url: normalizedRepoUrl,
@@ -123,11 +123,11 @@ async function run() {
         saved += 1;
       } else {
         const updates = {};
-        if (!exists.author && (metadata?.author || book.author)) {
-          updates.author = metadata?.author || book.author;
+        if (!exists.author) {
+          updates.author = metadata?.author || book.author || 'Unknown Author';
         }
-        if (!exists.book_url && book.book_url) {
-          updates.book_url = book.book_url;
+        if (!exists.book_url) {
+          updates.book_url = book.book_url || normalizedRepoUrl;
         }
         if (!exists.source_url) {
           updates.source_url = normalizedRepoUrl;

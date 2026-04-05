@@ -55,7 +55,7 @@ async function extractAndSaveBooks(repoUrl, subjectId) {
     if (!exists) {
       const doc = await Book.create({
         title: book.title,
-        author: metadata?.author || book.author,
+        author: metadata?.author || book.author || 'Unknown Author',
         subject_id: subjectId,
         source: 'github',
         source_url: normalizedRepoUrl,
@@ -68,8 +68,8 @@ async function extractAndSaveBooks(repoUrl, subjectId) {
       saved.push(doc);
     } else {
       const updates = {};
-      if (!exists.author && (metadata?.author || book.author)) updates.author = metadata?.author || book.author;
-      if (!exists.book_url && book.book_url) updates.book_url = book.book_url;
+      if (!exists.author) updates.author = metadata?.author || book.author || 'Unknown Author';
+      if (!exists.book_url) updates.book_url = book.book_url || normalizedRepoUrl;
       if (!exists.source_url) updates.source_url = normalizedRepoUrl;
       if (!exists.synopsis && metadata?.synopsis) updates.synopsis = metadata.synopsis;
       if (!exists.author_summary && metadata?.author_summary) updates.author_summary = metadata.author_summary;

@@ -34,9 +34,9 @@ export default function BookList({ books, loading, error }) {
       {books.map((book) => (
         <div key={book._id} className="py-4 flex items-start justify-between gap-4">
           <div className="min-w-0">
-            {book.book_url ? (
+            {(book.book_url || book.source_url) ? (
               <a
-                href={book.book_url}
+                href={book.book_url || book.source_url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm font-semibold text-slate-900 dark:text-slate-100 hover:text-teal-700 dark:hover:text-teal-400 transition break-words"

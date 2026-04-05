@@ -6,7 +6,8 @@
     "dev": "nodemon src/index.js",
     "seed": "node src/seed.js",
     "extract:admin": "node src/adminExtract.js",
-    "backfill:book-links": "node src/backfillBookLinks.js"
+    "backfill:book-links": "node src/backfillBookLinks.js",
+    "backfill:authors": "node src/backfillAuthors.js"
   },
   "dependencies": {
     "axios": "^1.6.0",
