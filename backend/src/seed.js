@@ -1,0 +1,90 @@
+require('dotenv').config();
+const mongoose = require('mongoose');
+const connectDB = require('./db');
+const Major = require('./models/Major');
+const Subject = require('./models/Subject');
+
+const SEED_DATA = {
+  'Computer Science': [
+    { year: 1, semester: 1, subjects: ['Introduction to Programming', 'Discrete Mathematics', 'Linear Algebra I'] },
+    { year: 1, semester: 2, subjects: ['Data Structures', 'Calculus I', 'Digital Logic Design'] },
+    { year: 2, semester: 1, subjects: ['Algorithms', 'Operating Systems', 'Computer Architecture'] },
+    { year: 2, semester: 2, subjects: ['Databases', 'Computer Networks', 'Software Engineering'] },
+    { year: 3, semester: 1, subjects: ['Compilers', 'Artificial Intelligence', 'Theory of Computation'] },
+    { year: 3, semester: 2, subjects: ['Machine Learning', 'Distributed Systems', 'Computer Graphics'] },
+    { year: 4, semester: 1, subjects: ['Cloud Computing', 'Cybersecurity', 'Capstone Project I'] },
+    { year: 4, semester: 2, subjects: ['Advanced Topics in CS', 'Capstone Project II'] },
+  ],
+  'Mathematics': [
+    { year: 1, semester: 1, subjects: ['Calculus I', 'Linear Algebra I', 'Introduction to Proofs'] },
+    { year: 1, semester: 2, subjects: ['Calculus II', 'Abstract Algebra I', 'Statistics'] },
+    { year: 2, semester: 1, subjects: ['Real Analysis I', 'Complex Analysis', 'Number Theory'] },
+    { year: 2, semester: 2, subjects: ['Real Analysis II', 'Differential Equations', 'Topology'] },
+    { year: 3, semester: 1, subjects: ['Functional Analysis', 'Measure Theory', 'Combinatorics'] },
+    { year: 3, semester: 2, subjects: ['Numerical Analysis', 'Probability Theory', 'Mathematical Logic'] },
+    { year: 4, semester: 1, subjects: ['Differential Geometry', 'Partial Differential Equations'] },
+    { year: 4, semester: 2, subjects: ['Advanced Seminar', 'Mathematics Thesis'] },
+  ],
+  'Mechanical Engineering': [
+    { year: 1, semester: 1, subjects: ['Engineering Mechanics', 'Engineering Drawing', 'Calculus for Engineers'] },
+    { year: 1, semester: 2, subjects: ['Thermodynamics I', 'Materials Science', 'Linear Algebra'] },
+    { year: 2, semester: 1, subjects: ['Fluid Mechanics', 'Dynamics', 'Manufacturing Processes'] },
+    { year: 2, semester: 2, subjects: ['Heat Transfer', 'Machine Design', 'Numerical Methods'] },
+    { year: 3, semester: 1, subjects: ['Control Systems', 'Mechanical Vibrations', 'Finite Element Analysis'] },
+    { year: 3, semester: 2, subjects: ['HVAC Systems', 'Robotics', 'Engineering Ethics'] },
+    { year: 4, semester: 1, subjects: ['Advanced Manufacturing', 'Capstone Design I'] },
+    { year: 4, semester: 2, subjects: ['Industrial Automation', 'Capstone Design II'] },
+  ],
+  'Electrical Engineering': [
+    { year: 1, semester: 1, subjects: ['Circuit Analysis I', 'Physics I', 'Calculus for Engineers'] },
+    { year: 1, semester: 2, subjects: ['Circuit Analysis II', 'Physics II', 'Linear Algebra'] },
+    { year: 2, semester: 1, subjects: ['Signals and Systems', 'Electronics I', 'Electromagnetics'] },
+    { year: 2, semester: 2, subjects: ['Electronics II', 'Digital Systems', 'Probability and Random Processes'] },
+    { year: 3, semester: 1, subjects: ['Control Theory', 'Communication Systems', 'Power Systems'] },
+    { year: 3, semester: 2, subjects: ['Microprocessors', 'Digital Signal Processing', 'Antenna Theory'] },
+    { year: 4, semester: 1, subjects: ['VLSI Design', 'Embedded Systems'] },
+    { year: 4, semester: 2, subjects: ['Advanced Power Electronics', 'Capstone Project'] },
+  ],
+  'Medicine': [
+    { year: 1, semester: 1, subjects: ['Anatomy I', 'Biochemistry', 'Medical Ethics'] },
+    { year: 1, semester: 2, subjects: ['Anatomy II', 'Physiology I', 'Histology'] },
+    { year: 2, semester: 1, subjects: ['Physiology II', 'Pharmacology I', 'Microbiology'] },
+    { year: 2, semester: 2, subjects: ['Pathology I', 'Immunology', 'Pharmacology II'] },
+    { year: 3, semester: 1, subjects: ['Pathology II', 'Clinical Diagnosis', 'Internal Medicine'] },
+    { year: 3, semester: 2, subjects: ['Surgery Basics', 'Pediatrics', 'Obstetrics and Gynecology'] },
+    { year: 4, semester: 1, subjects: ['Cardiology', 'Neurology', 'Clinical Rotations I'] },
+    { year: 4, semester: 2, subjects: ['Emergency Medicine', 'Psychiatry', 'Clinical Rotations II'] },
+  ],
+};
+
+async function runSeed() {
+  console.log('Seeding database…');
+  for (const [majorName, yearData] of Object.entries(SEED_DATA)) {
+    const major = await Major.findOneAndUpdate(
+      { name: majorName },
+      { name: majorName },
+      { upsert: true, new: true }
+    );
+
+    for (const { year, semester, subjects } of yearData) {
+      for (const subjectName of subjects) {
+        await Subject.findOneAndUpdate(
+          { name: subjectName, major_id: major._id, year, semester },
+          { name: subjectName, major_id: major._id, year, semester },
+          { upsert: true, new: true }
+        );
+      }
+    }
+  }
+  console.log('Seed complete — 5 majors and all subjects inserted.');
+}
+
+// Run directly: node src/seed.js
+if (require.main === module) {
+  connectDB()
+    .then(runSeed)
+    .then(() => mongoose.connection.close())
+    .catch((err) => { console.error(err); process.exit(1); });
+}
+
+module.exports = { runSeed };
