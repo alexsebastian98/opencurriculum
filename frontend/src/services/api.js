@@ -17,3 +17,7 @@ export const refreshMajorBookMetadata = (majorId) =>
   api.post(`/books/refresh-metadata/major/${majorId}`).then((r) => r.data)
 export const extractBooks = (repoUrl, subjectId) =>
   api.post('/github/extract-books', { repoUrl, subjectId }).then((r) => r.data)
+export const createSuggestion = (payload) =>
+  api.post('/suggestions', payload).then((r) => r.data)
+export const getSuggestions = (limit = 50) =>
+  api.get(`/suggestions?limit=${limit}`).then((r) => r.data)

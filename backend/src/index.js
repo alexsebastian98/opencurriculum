@@ -8,6 +8,7 @@ const { runSeed } = require('./seed');
 const majorsRouter = require('./routes/majors');
 const subjectsRouter = require('./routes/subjects');
 const booksRouter = require('./routes/books');
+const suggestionsRouter = require('./routes/suggestions');
 
 const app = express();
 
@@ -17,6 +18,7 @@ app.use(express.json());
 app.use('/api/majors', majorsRouter);
 app.use('/api/subjects', subjectsRouter);
 app.use('/api/books', booksRouter);
+app.use('/api/suggestions', suggestionsRouter);
 
 const PORT = process.env.PORT || 5000;
 

@@ -30,6 +30,14 @@ export default function Navbar() {
           <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">
             Explore degrees. Discover books.
           </p>
+          <Link
+            to="/forum"
+            className="inline-flex items-center justify-center h-8 px-3 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+            title="Suggest Books"
+            aria-label="Suggest Books"
+          >
+            Forum
+          </Link>
           <button
             type="button"
             onClick={() => setTheme(isDark ? 'light' : 'dark')}
