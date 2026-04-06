@@ -11,7 +11,11 @@ const connectDB = require('./db');
 const Major = require('./models/Major');
 const Subject = require('./models/Subject');
 const Book = require('./models/Book');
-const { fetchRepoMarkdownFiles, normalizeRepoUrl } = require('./services/githubService');
+const {
+  fetchRepoMarkdownFiles,
+  fetchRepoRootBookFiles,
+  normalizeRepoUrl,
+} = require('./services/githubService');
 const { extractBooksFromMarkdown } = require('./utils/markdownParser');
 const { assignBooksToSubjects } = require('./utils/subjectMatcher');
 const { enrichBookMetadata } = require('./services/bookMetadataService');
@@ -92,6 +96,18 @@ async function run() {
         allBooks.push(book);
       }
     }
+  }
+
+  if (allBooks.length === 0) {
+    const fileBooks = await fetchRepoRootBookFiles(normalizedRepoUrl);
+    for (const book of fileBooks) {
+      const key = `${book.title.toLowerCase().replace(/\s+/g, ' ').trim()}|${(book.author || '').toLowerCase()}`;
+      if (!seenTitles.has(key)) {
+        seenTitles.add(key);
+        allBooks.push(book);
+      }
+    }
+    console.log(`Markdown had no extractable list; used root-file fallback (${fileBooks.length} file book(s)).`);
   }
 
   console.log(`Extracted ${allBooks.length} unique book(s) from markdown`);

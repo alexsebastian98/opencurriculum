@@ -1,4 +1,8 @@
-const { fetchRepoMarkdownFiles, normalizeRepoUrl } = require('./githubService');
+const {
+  fetchRepoMarkdownFiles,
+  fetchRepoRootBookFiles,
+  normalizeRepoUrl,
+} = require('./githubService');
 const { extractBooksFromMarkdown } = require('../utils/markdownParser');
 const { enrichBookMetadata } = require('./bookMetadataService');
 const Book = require('../models/Book');
@@ -42,6 +46,11 @@ async function extractAndSaveBooks(repoUrl, subjectId) {
       filePath: file.path,
     });
     allBooks.push(...books);
+  }
+
+  if (allBooks.length === 0) {
+    const fileBooks = await fetchRepoRootBookFiles(normalizedRepoUrl);
+    allBooks.push(...fileBooks);
   }
 
   // Cross-file deduplication by normalised title

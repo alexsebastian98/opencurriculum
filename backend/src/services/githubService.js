@@ -85,4 +85,50 @@ async function fetchRepoMarkdownFiles(repoUrl) {
   return contents;
 }
 
-module.exports = { fetchRepoMarkdownFiles, parseRepoUrl, normalizeRepoUrl };
+function fileNameToTitle(name) {
+  return name
+    .replace(/\.(pdf|epub|djvu|mobi|chm)$/i, '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Fallback extractor: reads root-level book files from a repo and maps them into
+ * { title, author, section, book_url } entries.
+ */
+async function fetchRepoRootBookFiles(repoUrl) {
+  const normalizedRepoUrl = normalizeRepoUrl(repoUrl);
+  const { owner, repo } = parseRepoUrl(normalizedRepoUrl);
+  const cacheKey = `repo-files:${owner}/${repo}`;
+  const cached = cache.get(cacheKey);
+  if (cached !== undefined) return cached;
+
+  const contentsUrl = `https://api.github.com/repos/${owner}/${repo}/contents/`;
+  const response = await axios.get(contentsUrl, { headers: makeHeaders(), timeout: 10000 });
+
+  const books = response.data
+    .filter(
+      (f) =>
+        f.type === 'file' &&
+        /\.(pdf|epub|djvu|mobi|chm)$/i.test(f.name) &&
+        !/^readme\./i.test(f.name) &&
+        !/^license$/i.test(f.name)
+    )
+    .map((f) => ({
+      title: fileNameToTitle(f.name),
+      author: '',
+      section: 'root-files',
+      book_url: `${normalizedRepoUrl}/blob/master/${f.path}`,
+    }));
+
+  cache.set(cacheKey, books);
+  return books;
+}
+
+module.exports = {
+  fetchRepoMarkdownFiles,
+  fetchRepoRootBookFiles,
+  parseRepoUrl,
+  normalizeRepoUrl,
+};
