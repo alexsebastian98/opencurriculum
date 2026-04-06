@@ -16,6 +16,22 @@ const { extractBooksFromMarkdown } = require('./utils/markdownParser');
 const { assignBooksToSubjects } = require('./utils/subjectMatcher');
 const { enrichBookMetadata } = require('./services/bookMetadataService');
 
+function toMetadataUpdates(metadata) {
+  return {
+    author: metadata?.author || 'Unknown Author',
+    isbn_10: metadata?.isbn_10 || '',
+    isbn_13: metadata?.isbn_13 || '',
+    synopsis: metadata?.synopsis || '',
+    author_summary: metadata?.author_summary || '',
+    metadata_source: metadata?.metadata_source || '',
+    description_source: metadata?.description_source || '',
+    metadata_confidence: metadata?.metadata_confidence || 0,
+    metadata_error: metadata?.metadata_error || '',
+    metadata_refreshed_at: metadata?.metadata_refreshed_at || null,
+    metadata_updated_at: metadata?.metadata_updated_at || null,
+  };
+}
+
 function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -102,23 +118,35 @@ async function run() {
       });
 
       let metadata = null;
-      const needsMetadata = !exists || !exists.synopsis || !exists.author_summary;
+      const needsMetadata = !exists || !exists.synopsis || !exists.author_summary || !exists.author;
       if (needsMetadata) {
-        metadata = await enrichBookMetadata({ title: book.title, author: book.author });
+        metadata = await enrichBookMetadata({
+          title: book.title,
+          author: book.author,
+          isbn_10: exists?.isbn_10,
+          isbn_13: exists?.isbn_13,
+        });
       }
 
       if (!exists) {
+        const metadataUpdates = toMetadataUpdates(metadata);
         await Book.create({
           title: book.title,
-          author: metadata?.author || book.author || 'Unknown Author',
+          author: metadataUpdates.author || book.author || 'Unknown Author',
           subject_id: subject._id,
           source: 'github',
           source_url: normalizedRepoUrl,
           book_url: book.book_url || normalizedRepoUrl,
-          synopsis: metadata?.synopsis || '',
-          author_summary: metadata?.author_summary || '',
-          metadata_source: metadata?.metadata_source || '',
-          metadata_updated_at: metadata?.metadata_updated_at || null,
+          isbn_10: metadataUpdates.isbn_10,
+          isbn_13: metadataUpdates.isbn_13,
+          synopsis: metadataUpdates.synopsis,
+          author_summary: metadataUpdates.author_summary,
+          metadata_source: metadataUpdates.metadata_source,
+          description_source: metadataUpdates.description_source,
+          metadata_confidence: metadataUpdates.metadata_confidence,
+          metadata_error: metadataUpdates.metadata_error,
+          metadata_refreshed_at: metadataUpdates.metadata_refreshed_at,
+          metadata_updated_at: metadataUpdates.metadata_updated_at,
         });
         saved += 1;
       } else {
@@ -143,6 +171,24 @@ async function run() {
         }
         if (!exists.metadata_updated_at && metadata?.metadata_updated_at) {
           updates.metadata_updated_at = metadata.metadata_updated_at;
+        }
+        if (!exists.isbn_10 && metadata?.isbn_10) {
+          updates.isbn_10 = metadata.isbn_10;
+        }
+        if (!exists.isbn_13 && metadata?.isbn_13) {
+          updates.isbn_13 = metadata.isbn_13;
+        }
+        if (!exists.description_source && metadata?.description_source) {
+          updates.description_source = metadata.description_source;
+        }
+        if (!exists.metadata_confidence && metadata?.metadata_confidence) {
+          updates.metadata_confidence = metadata.metadata_confidence;
+        }
+        if ((!exists.metadata_error || exists.metadata_error.length === 0) && metadata?.metadata_error) {
+          updates.metadata_error = metadata.metadata_error;
+        }
+        if (!exists.metadata_refreshed_at && metadata?.metadata_refreshed_at) {
+          updates.metadata_refreshed_at = metadata.metadata_refreshed_at;
         }
 
         if (Object.keys(updates).length > 0) {

@@ -9,5 +9,11 @@ export const getSubject = (subjectId) =>
   api.get(`/subjects/detail/${subjectId}`).then((r) => r.data)
 export const getBooks = (subjectId) =>
   api.get(`/books/${subjectId}`).then((r) => r.data)
+export const refreshBookMetadata = (bookId) =>
+  api.post(`/books/${bookId}/refresh-metadata`).then((r) => r.data)
+export const refreshSubjectBookMetadata = (subjectId) =>
+  api.post(`/books/refresh-metadata/subject/${subjectId}`).then((r) => r.data)
+export const refreshMajorBookMetadata = (majorId) =>
+  api.post(`/books/refresh-metadata/major/${majorId}`).then((r) => r.data)
 export const extractBooks = (repoUrl, subjectId) =>
   api.post('/github/extract-books', { repoUrl, subjectId }).then((r) => r.data)
