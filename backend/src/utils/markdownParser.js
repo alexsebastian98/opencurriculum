@@ -174,6 +174,27 @@ function deduplicateBooks(books) {
  * { title: string, author: string, section: string, book_url: string } objects.
  */
 function extractBooksFromMarkdown(markdownText, options = {}) {
+  // Pre-pass: scan the full text for multi-line HTML <a href="...pdf|epub|..."> links.
+  // Many repos (e.g. HTML-style READMEs) wrap each book in a multi-line anchor tag that
+  // the line-by-line parser cannot detect.
+  const HTML_LINK_FULLTEXT = /<a[^>]+href=["']([^"']+\.(?:pdf|epub|djvu|mobi|rar)[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  const seenTitles = new Set();
+  const prePassBooks = [];
+  let m;
+  while ((m = HTML_LINK_FULLTEXT.exec(markdownText)) !== null) {
+    const bookUrl = normalizeBookUrl(m[1], options);
+    const title = cleanCapture(m[2]);
+    const key = title.toLowerCase().replace(/\s+/g, ' ').trim();
+    if (title.length >= 3 && !seenTitles.has(key)) {
+      seenTitles.add(key);
+      prePassBooks.push({ title, author: '', book_url: bookUrl, section: 'document' });
+    }
+  }
+
+  // If the full-text pre-pass found links, return them directly — no need for line-by-line.
+  if (prePassBooks.length > 0) return prePassBooks;
+
+  // Fall back to the original section / line-by-line parser.
   const sections = extractSections(markdownText);
   const allBooks = [];
 

@@ -1,0 +1,30 @@
+services:
+  # ── Backend ─────────────────────────────────────────────────────────────────
+  - type: web
+    name: opencurriculum-api
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false       # set manually in Render dashboard
+      - key: GITHUB_TOKEN
+        sync: false       # set manually in Render dashboard
+
+  # ── Frontend ────────────────────────────────────────────────────────────────
+  - type: web
+    name: opencurriculum-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false       # set to https://opencurriculum-api.onrender.com/api
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

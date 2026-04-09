@@ -46,8 +46,24 @@ async function fetchFileContent(owner, repo, path) {
   if (cached !== undefined) return cached;
 
   const url = `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`;
-  const response = await axios.get(url, { headers: makeHeaders(), timeout: 10000 });
-  const content = Buffer.from(response.data.content, 'base64').toString('utf8');
+  const response = await axios.get(url, { headers: makeHeaders(), timeout: 15000 });
+
+  let content;
+  if (response.data.content) {
+    // Normal case: content is base64-encoded inline
+    content = Buffer.from(response.data.content, 'base64').toString('utf8');
+  } else if (response.data.download_url) {
+    // Large file (>1MB): GitHub omits content and provides a raw download URL
+    const rawResponse = await axios.get(response.data.download_url, {
+      headers: makeHeaders(),
+      timeout: 30000,
+      responseType: 'text',
+    });
+    content = rawResponse.data;
+  } else {
+    content = '';
+  }
+
   cache.set(cacheKey, content);
   return content;
 }
