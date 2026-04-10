@@ -10,8 +10,11 @@
    - Click "Confirm"
 
 2. **Whitelist Render IPs** (for production):
-   - Add Render's IP range to Network Access
-   - Or use "0.0.0.0/0" for development deployments
+   - Add these Render outbound CIDR ranges to Network Access:
+     - `74.220.48.0/24`
+     - `74.220.56.0/24`
+   - These are shared Render egress ranges for your region.
+   - Avoid `0.0.0.0/0` unless you are doing temporary troubleshooting.
 
 3. **Get Your Connection String**:
    - Go to "Connect" → "Drivers"
@@ -33,6 +36,7 @@
    - **Environment Variables**:
      - `MONGODB_URI`: Your MongoDB Atlas connection string
      - `GITHUB_TOKEN`: Your GitHub token
+       - `CORS_ORIGINS`: `https://opencurriculum-frontend.onrender.com`
      - `PORT`: 5000
      - `NODE_ENV`: production
 5. Click "Create Web Service"
@@ -59,6 +63,10 @@ After both services are created:
 3. Add/update variables:
    - `MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/opencurriculum?retryWrites=true&w=majority`
    - `GITHUB_TOKEN=your_token`
+   - `CORS_ORIGINS=https://your-frontend-host.onrender.com`
+
+### Health Check
+After deployment, verify the backend health endpoint at `https://your-backend-host.onrender.com/health`.
 
 ### For Frontend Service
 1. Go to opencurriculum-frontend settings
@@ -72,12 +80,13 @@ Both services should deploy automatically. Check deployment status in the Render
 
 **MongoDB Connection Errors**:
 - Verify your IP is whitelisted on MongoDB Atlas
+- Verify both Render outbound ranges are whitelisted in Atlas
 - Check that your connection string includes the database name `/opencurriculum`
 - Test locally first with the correct MONGODB_URI
 
 **Frontend API Errors**:
 - Make sure backend URL in VITE_API_URL is correct
-- Check CORS settings in backend (if needed)
+- Check `CORS_ORIGINS` in the backend Render service
 
 **Deployment Hangs**:
 - Check build logs in Render dashboard

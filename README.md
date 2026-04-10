@@ -144,11 +144,23 @@ Create `backend/.env`:
 MONGODB_URI=mongodb://localhost:27017/opencurriculum
 PORT=5000
 GITHUB_TOKEN=your_github_token_optional
+NODE_ENV=development
+CORS_ORIGINS=http://localhost:5173
 ```
 
 Notes:
 - `GITHUB_TOKEN` is strongly recommended to avoid low unauthenticated rate limits.
+- `CORS_ORIGINS` accepts a comma-separated list of browser origins that may call the API.
 - Rotate tokens immediately if accidentally exposed.
+
+## Render Deployment Notes
+
+- Whitelist these Render outbound CIDR ranges in MongoDB Atlas Network Access:
+  - `74.220.48.0/24`
+  - `74.220.56.0/24`
+- Set backend `CORS_ORIGINS` on Render to your deployed frontend origin.
+- Set frontend `VITE_API_URL` on Render to your backend URL with `/api` appended.
+- Use the backend health check at `/health` after deployment to verify startup independently of the API routes.
 
 ## Installation
 

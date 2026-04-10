@@ -13,6 +13,8 @@ services:
         sync: false       # set manually in Render dashboard
       - key: GITHUB_TOKEN
         sync: false       # set manually in Render dashboard
+      - key: CORS_ORIGINS
+        sync: false       # set to your frontend origin, e.g. https://opencurriculum-frontend.onrender.com
 
   # ── Frontend ────────────────────────────────────────────────────────────────
   - type: web
