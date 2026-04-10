@@ -47,7 +47,7 @@
 3. Connect your GitHub repository
 4. Set these values:
    - **Name**: `opencurriculum-frontend`
-   - **Build Command**: `cd frontend && npm install && npm run build`
+   - **Build Command**: `cd frontend && npm install --include=dev && npm run build`
    - **Publish Directory**: `frontend/dist`
    - **Environment Variables**:
      - `VITE_API_URL`: `https://opencurriculum-api.onrender.com/api`
@@ -91,4 +91,9 @@ Both services should deploy automatically. Check deployment status in the Render
 **Deployment Hangs**:
 - Check build logs in Render dashboard
 - Ensure all dependencies in package.json are correct
+
+**Frontend build fails with status 127**:
+- Remove `NODE_ENV` from the frontend service environment variables (do not set it there)
+- Ensure build command includes dev dependencies: `npm install --include=dev && npm run build`
+- Check logs for `vite: not found`, which indicates dev dependencies were omitted
 
