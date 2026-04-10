@@ -26,8 +26,60 @@ const BOOK_PATTERNS = [
 ];
 
 // HTML/Markdown link patterns where the anchor text itself is the book title.
-const HTML_BOOK_LINK_PATTERN = /<a[^>]+href=["']([^"']+\.(?:pdf|epub|djvu|mobi)[^"']*)["'][^>]*>(.*?)<\/a>/i;
-const MD_BOOK_LINK_PATTERN = /\[([^\]]+)\]\(([^)]+\.(?:pdf|epub|djvu|mobi)[^)]+)\)/i;
+const HTML_BOOK_LINK_PATTERN = /<a[^>]+href=["']([^"']+)["'][^>]*>(.*?)<\/a>/i;
+
+function extractMarkdownLink(rawLine) {
+  const labelStart = rawLine.indexOf('[');
+  if (labelStart === -1) return null;
+
+  const labelEnd = rawLine.indexOf('](', labelStart);
+  if (labelEnd === -1) return null;
+
+  const title = rawLine.slice(labelStart + 1, labelEnd);
+  let index = labelEnd + 2;
+  let depth = 1;
+  let url = '';
+
+  while (index < rawLine.length) {
+    const char = rawLine[index];
+    if (char === '(') {
+      depth += 1;
+      url += char;
+    } else if (char === ')') {
+      depth -= 1;
+      if (depth === 0) {
+        return { title, url };
+      }
+      url += char;
+    } else {
+      url += char;
+    }
+    index += 1;
+  }
+
+  return null;
+}
+
+function looksLikeBookUrl(url = '') {
+  return /\.(?:pdf|epub|djvu|mobi|chm|rar)(?:$|[?#])/i.test(url)
+    || /github\.com\/[^/]+\/[^/]+\/(?:blob|raw|tree)\//i.test(url)
+    || /raw\.githubusercontent\.com\//i.test(url);
+}
+
+function looksLikeBookTitle(title = '') {
+  if (!title || title.length < 3) return false;
+
+  const normalized = title.trim();
+  if (/^contributors?$/i.test(normalized)) return false;
+  if (/^infinicus$/i.test(normalized)) return false;
+  if (/^[A-Z][a-z]+\s+[A-Z][a-z]+$/.test(normalized) && !/[\-:,\[\]()'&]|\d/.test(normalized)) {
+    return false;
+  }
+
+  return /\b(?:edition|calculus|analysis|physics|circuits?|signals?|systems?|architecture|programming|communications?|algebra|mathematics?|equations?|methods|electronics?|networking|electric|computer|code|design|fundamentals?)\b/i.test(normalized)
+    || /\[[^\]]+\]/.test(normalized)
+    || /[-:,()'&]|\d/.test(normalized);
+}
 
 /**
  * Strips markdown syntax from a single line, returning plain text.
@@ -121,16 +173,22 @@ function normalizeBookUrl(rawUrl, options = {}) {
 function parseLinkedBookTitle(rawLine, options = {}) {
   const htmlMatch = HTML_BOOK_LINK_PATTERN.exec(rawLine);
   if (htmlMatch) {
-    const bookUrl = normalizeBookUrl(htmlMatch[1], options);
     const title = cleanCapture(htmlMatch[2]);
-    if (title.length >= 3) return { title, author: '', book_url: bookUrl };
+    const rawUrl = htmlMatch[1];
+    if (looksLikeBookUrl(rawUrl) && looksLikeBookTitle(title)) {
+      const bookUrl = normalizeBookUrl(rawUrl, options);
+      return { title, author: '', book_url: bookUrl };
+    }
   }
 
-  const mdMatch = MD_BOOK_LINK_PATTERN.exec(rawLine);
-  if (mdMatch) {
-    const title = cleanCapture(mdMatch[1]);
-    const bookUrl = normalizeBookUrl(mdMatch[2], options);
-    if (title.length >= 3) return { title, author: '', book_url: bookUrl };
+  const mdLink = extractMarkdownLink(rawLine);
+  if (mdLink) {
+    const title = cleanCapture(mdLink.title);
+    const rawUrl = mdLink.url;
+    if (looksLikeBookUrl(rawUrl) && looksLikeBookTitle(title)) {
+      const bookUrl = normalizeBookUrl(rawUrl, options);
+      return { title, author: '', book_url: bookUrl };
+    }
   }
 
   return null;

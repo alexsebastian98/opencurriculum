@@ -18,10 +18,13 @@ function makeHeaders() {
  * https://github.com/{owner}/{repo}
  */
 function normalizeRepoUrl(repoUrl) {
-  const match = repoUrl.trim().match(/github\.com\/([^/]+)\/([^/]+)/i);
+  const sanitized = repoUrl.trim().replace(/[?#].*$/, '');
+  const match = sanitized.match(/github\.com\/([^/]+)\/([^/]+)/i);
   if (!match) throw new Error('Invalid GitHub repository URL');
   const owner = match[1];
-  const repo = match[2].replace(/\.git$/i, '');
+  const repo = match[2]
+    .replace(/\.git$/i, '')
+    .replace(/\/(?:tree|blob)\/.*$/i, '');
   return `https://github.com/${owner}/${repo}`;
 }
 
