@@ -7,7 +7,6 @@ const {
 } = require('../services/githubService');
 const { extractBooksFromMarkdown } = require('../utils/markdownParser');
 const { assignBooksToSubjects } = require('../utils/subjectMatcher');
-const { enrichBookMetadata } = require('../services/bookMetadataService');
 const Major = require('../models/Major');
 const Subject = require('../models/Subject');
 const Book = require('../models/Book');
@@ -62,27 +61,23 @@ async function extractByMajor(req, res) {
         title: { $regex: new RegExp(`^${escapeRegex(book.title)}$`, 'i') },
       });
       if (!exists) {
-        let metadata = null;
-        try {
-          metadata = await enrichBookMetadata({ title: book.title, author: book.author });
-        } catch (_) {}
         await Book.create({
           title: book.title,
-          author: metadata?.author || book.author || 'Unknown Author',
+          author: book.author || 'Unknown Author',
           subject_id: subjectId,
           source: 'github',
           source_url: normalizedRepoUrl,
           book_url: book.book_url || normalizedRepoUrl,
-          isbn_10: metadata?.isbn_10 || '',
-          isbn_13: metadata?.isbn_13 || '',
-          synopsis: metadata?.synopsis || '',
-          author_summary: metadata?.author_summary || '',
-          metadata_source: metadata?.metadata_source || '',
-          description_source: metadata?.description_source || '',
-          metadata_confidence: metadata?.metadata_confidence || 0,
-          metadata_error: metadata?.metadata_error || '',
-          metadata_refreshed_at: metadata?.metadata_refreshed_at || null,
-          metadata_updated_at: metadata?.metadata_updated_at || null,
+          isbn_10: '',
+          isbn_13: '',
+          synopsis: '',
+          author_summary: '',
+          metadata_source: '',
+          description_source: '',
+          metadata_confidence: 0,
+          metadata_error: '',
+          metadata_refreshed_at: null,
+          metadata_updated_at: null,
         });
         totalSaved++;
       }
