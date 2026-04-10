@@ -17,7 +17,7 @@ services:
         sync: false       # set to your frontend origin, e.g. https://opencurriculum-frontend.onrender.com
 
   # ── Frontend ────────────────────────────────────────────────────────────────
-  - type: web
+  - type: static
     name: opencurriculum-frontend
     runtime: static
     rootDir: frontend
