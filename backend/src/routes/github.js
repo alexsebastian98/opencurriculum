@@ -1,8 +1,14 @@
 const router = require('express').Router();
-const { extractBooks, extractByMajor, getExtractJob } = require('../controllers/githubController');
+const {
+	extractBooks,
+	extractByMajor,
+	getExtractJob,
+	rebalanceMajorBooks,
+} = require('../controllers/githubController');
 
 router.post('/extract-books', extractBooks);
 router.post('/extract-by-major', extractByMajor);
 router.get('/extract-jobs/:jobId', getExtractJob);
+router.post('/rebalance-major', rebalanceMajorBooks);
 
 module.exports = router;

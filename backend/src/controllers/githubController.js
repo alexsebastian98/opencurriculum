@@ -154,6 +154,70 @@ function getExtractJob(req, res) {
   res.json(job);
 }
 
+async function rebalanceMajorBooks(req, res) {
+  const { majorName = 'Medicine', fallbackSubjectName } = req.body || {};
+
+  const major = await Major.findOne({
+    name: new RegExp(`^${escapeRegex(majorName)}$`, 'i'),
+  });
+  if (!major) {
+    return res.status(404).json({ error: `Major not found: ${majorName}` });
+  }
+
+  const subjects = await Subject.find({ major_id: major._id });
+  const subjectIds = subjects.map((s) => s._id);
+  const books = await Book.find({ subject_id: { $in: subjectIds } });
+
+  const fallbackPattern = fallbackSubjectName
+    ? new RegExp(`^${escapeRegex(fallbackSubjectName)}$`, 'i')
+    : /medicine/i.test(major.name)
+    ? /medical ethics/i
+    : null;
+
+  const assignments = assignBooksToSubjects(books, subjects, {
+    minScore: 3,
+    fallbackSubjectPattern: fallbackPattern,
+    genericSubjectTokens: /medicine/i.test(major.name)
+      ? ['medical', 'medicine']
+      : [],
+  });
+
+  const targetByBookId = new Map();
+  for (const [subjectId, entry] of assignments) {
+    for (const book of entry.books) {
+      targetByBookId.set(book._id.toString(), subjectId);
+    }
+  }
+
+  const ops = [];
+  let moved = 0;
+  for (const book of books) {
+    const targetSubjectId = targetByBookId.get(book._id.toString());
+    if (!targetSubjectId) continue;
+
+    if (book.subject_id.toString() !== targetSubjectId) {
+      moved++;
+      ops.push({
+        updateOne: {
+          filter: { _id: book._id },
+          update: { $set: { subject_id: targetSubjectId } },
+        },
+      });
+    }
+  }
+
+  if (ops.length > 0) {
+    await Book.bulkWrite(ops, { ordered: false });
+  }
+
+  res.json({
+    major: major.name,
+    totalBooks: books.length,
+    movedBooks: moved,
+    fallback: fallbackPattern ? fallbackPattern.toString() : null,
+  });
+}
+
 async function extractBooks(req, res) {
   const { repoUrl, subjectId } = req.body;
 
@@ -183,4 +247,4 @@ async function extractBooks(req, res) {
   }
 }
 
-module.exports = { extractBooks, extractByMajor, getExtractJob };
+module.exports = { extractBooks, extractByMajor, getExtractJob, rebalanceMajorBooks };

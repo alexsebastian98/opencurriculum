@@ -45,6 +45,8 @@ const SYNONYMS = {
   dsp: 'digital',
 };
 
+const DEFAULT_GENERIC_SUBJECT_TOKENS = new Set(['medical', 'medicine']);
+
 function tokenize(str) {
   return str
     .toLowerCase()
@@ -58,14 +60,19 @@ function isAssignableSubject(subjectName) {
   return !/(thesis|seminar|capstone|project|rotations?)/i.test(subjectName);
 }
 
-function scoreBook(book, subjectName) {
-  const subjectTokens = tokenize(subjectName);
+function scoreBook(book, subjectName, options = {}) {
+  const genericSubjectTokens = new Set(
+    options.genericSubjectTokens || DEFAULT_GENERIC_SUBJECT_TOKENS
+  );
+  const subjectTokensRaw = tokenize(subjectName);
+  const subjectTokens = subjectTokensRaw.filter((t) => !genericSubjectTokens.has(t));
+  const effectiveSubjectTokens = subjectTokens.length > 0 ? subjectTokens : subjectTokensRaw;
   const titleTokens = new Set(tokenize(book.title));
   const sectionTokens = new Set(tokenize(book.section || ''));
 
   let score = 0;
 
-  for (const st of subjectTokens) {
+  for (const st of effectiveSubjectTokens) {
     if (titleTokens.has(st)) score += 3;
     if (sectionTokens.has(st)) score += 5;
 
@@ -80,12 +87,25 @@ function scoreBook(book, subjectName) {
   return score;
 }
 
+function matchesSubjectPattern(subject, pattern) {
+  if (!pattern) return false;
+  if (pattern instanceof RegExp) return pattern.test(subject.name);
+  if (typeof pattern === 'string') {
+    return subject.name.toLowerCase() === pattern.toLowerCase();
+  }
+  return false;
+}
+
 /**
  * Assigns each book to the best-matching subject.
  * Returns Map<subjectId, { subject, books }>
  */
-function assignBooksToSubjects(books, subjects) {
+function assignBooksToSubjects(books, subjects, options = {}) {
+  const minScore = Number.isFinite(options.minScore) ? options.minScore : 3;
   const targetSubjects = subjects.filter((s) => isAssignableSubject(s.name));
+  const fallbackSubject = targetSubjects.find((s) =>
+    matchesSubjectPattern(s, options.fallbackSubjectPattern)
+  );
   const map = new Map();
 
   for (const book of books) {
@@ -93,16 +113,19 @@ function assignBooksToSubjects(books, subjects) {
     let bestScore = 0;
 
     for (const subject of targetSubjects) {
-      const score = scoreBook(book, subject.name);
+      const score = scoreBook(book, subject.name, options);
       if (score > bestScore) {
         bestScore = score;
         bestSubject = subject;
       }
     }
 
-    if (bestSubject && bestScore >= 3) {
-      const id = bestSubject._id.toString();
-      if (!map.has(id)) map.set(id, { subject: bestSubject, books: [] });
+    const targetSubject =
+      bestSubject && bestScore >= minScore ? bestSubject : fallbackSubject || null;
+
+    if (targetSubject) {
+      const id = targetSubject._id.toString();
+      if (!map.has(id)) map.set(id, { subject: targetSubject, books: [] });
       map.get(id).books.push(book);
     }
   }
