@@ -1,30 +1,48 @@
 # OpenCurriculum
 
-OpenCurriculum is a full-stack curriculum explorer for degree programs. It organizes majors into a 4-year timeline, lets users drill into subjects, and shows recommended books with direct links and enriched metadata.
+OpenCurriculum is a full-stack curriculum intelligence platform that maps degree subjects to practical learning resources.
 
-This repository contains:
-- A Node.js + Express + MongoDB backend API
-- A React + Vite + Tailwind frontend
+At a high level:
 
-## What The App Does
+1. Users select a major.
+2. Users browse a 4-year timeline of subjects.
+3. Users open a subject and see relevant books/resources.
+4. Admin workflows ingest books from GitHub repositories and persist them in MongoDB Atlas.
 
-1. Shows majors (Computer Science, Mathematics, Mechanical Engineering, Electrical Engineering, Medicine).
-2. Shows subject timelines by year and semester for each major.
-3. Shows books for each subject.
-4. Links users directly to the specific book file when available (for example direct PDF links), not just repo home pages.
-5. Enriches books with metadata (author, synopsis, ISBN fields, source confidence).
-6. Supports admin ingestion from GitHub repositories and metadata refresh workflows.
+This project is designed for real deployment, not just local demo use.
 
-## Tech Stack
+## 1) Product Scope
 
-### Backend
+Supported majors:
+
+- Computer Science
+- Mathematics
+- Mechanical Engineering
+- Electrical Engineering
+- Medicine
+
+Core capabilities:
+
+- Structured curriculum by year and semester
+- Subject-level book lists
+- Direct resource links from source repositories
+- Metadata refresh workflow for author/synopsis enrichment
+- GitHub extraction pipeline for bulk import
+- Suggestion intake API for future resource additions
+
+## 2) Technology Stack
+
+Backend:
+
 - Node.js
 - Express
-- MongoDB + Mongoose
+- MongoDB Atlas
+- Mongoose
 - Axios
 - NodeCache
 
-### Frontend
+Frontend:
+
 - React 18
 - React Router
 - Vite
@@ -32,7 +50,13 @@ This repository contains:
 - Axios
 - lucide-react
 
-## Repository Structure
+Deployment:
+
+- Render Web Service for backend API
+- Render Static Site for frontend SPA
+- MongoDB Atlas for persistent data
+
+## 3) Repository Structure
 
 ```text
 backend/
@@ -42,272 +66,382 @@ backend/
     routes/
     services/
     utils/
-    adminExtract.js
-    backfillBookLinks.js
-    backfillDirectLinks.js
-    seed.js
     index.js
+    seed.js
+    adminExtract.js
 frontend/
   src/
     components/
-    hooks/
     pages/
+    hooks/
     services/
+render.yaml
 ```
 
-## Architecture Overview
+## 4) Architecture and Data Flow
 
-### Backend Responsibilities
-- Serve majors, subjects, and books via REST APIs.
-- Seed majors/subjects automatically when DB is empty.
-- Extract books from GitHub repositories (admin CLI flow).
-- Normalize and store direct file links.
-- Enrich metadata using ISBN/title-based lookups.
+### Backend responsibilities
 
-### Frontend Responsibilities
-- Render major cards and curriculum timeline.
-- Render subject-level book list.
-- Render per-book details via expandable dropdown UI.
-- Trigger per-book metadata refresh on demand when details are missing.
+- Serve majors, subjects, books, and suggestions
+- Seed majors and subjects when DB is empty
+- Extract books from GitHub repos
+- Match extracted books to subjects
+- Persist data in Atlas
+- Refresh metadata on demand
 
-## Data Model
+### Frontend responsibilities
+
+- Render major and subject navigation
+- Render curriculum timeline
+- Render book list with hyperlinks
+- Call API endpoints for data and refresh operations
+
+### Persistent flow
+
+1. Extraction request reaches backend API.
+2. Backend fetches and parses repo content.
+3. Backend assigns books to subjects.
+4. Backend writes records into MongoDB Atlas.
+5. Frontend reads data from API by subject.
+
+Because Atlas is persistent storage, data survives Render restarts and redeploys.
+
+## 5) Data Model
 
 ### Major
-- `name`
+
+- name
 
 ### Subject
-- `name`
-- `major_id`
-- `year`
-- `semester`
+
+- name
+- major_id
+- year
+- semester
 
 ### Book
-- `title`
-- `author`
-- `isbn_10`
-- `isbn_13`
-- `subject_id`
-- `source` (`github` or `manual`)
-- `source_url` (origin repo)
-- `book_url` (direct file URL when available)
-- `synopsis`
-- `author_summary`
-- `metadata_source` (for example `openlibrary-isbn`, `openlibrary`, `google-books`, `wikipedia`, `generated`)
-- `description_source` (`isbn`, `title-author`, etc.)
-- `metadata_confidence` (0-100)
-- `metadata_error`
-- `metadata_refreshed_at`
-- `metadata_version`
-- `metadata_updated_at`
+
+- title
+- author
+- isbn_10
+- isbn_13
+- subject_id
+- source (github or manual)
+- source_url
+- book_url
+- synopsis
+- author_summary
+- metadata_source
+- description_source
+- metadata_confidence
+- metadata_error
+- metadata_refreshed_at
+- metadata_version
+- metadata_updated_at
 
 Indexes:
-- `isbn_13`
-- `{ subject_id, title }`
 
-## Metadata Enrichment Pipeline
+- isbn_13
+- subject_id + title
 
-Book enrichment is ISBN-first with fallbacks:
+### BookSuggestion
 
-1. Open Library ISBN endpoint (`openlibrary-isbn`) when ISBN exists.
-2. Open Library title/author search (`openlibrary`) with title normalization and multi-query attempts.
-3. Google Books title/author fallback (`google-books`).
-4. Wikipedia summary fallback (`wikipedia`).
-5. Generated fallback (`generated`) when external sources fail.
+- name (optional)
+- major (required)
+- book_title (required)
+- book_link (required URL)
+- note (optional)
+- status (new, reviewed, approved, rejected)
+- created_at
 
-Additional behavior:
-- ISBN normalization and validation (ISBN-10/ISBN-13).
-- ISBN-10 to ISBN-13 conversion when possible.
-- In-memory metadata caching (24 hours) to reduce repeated API calls.
+## 6) Runtime API Endpoints
 
-## GitHub Extraction Pipeline
+Root and health:
 
-Admin extraction (`adminExtract.js`) performs:
+- GET /
+- GET /health
 
-1. Fetch markdown files from repository root.
-2. Parse book entries from markdown patterns and direct file links.
-3. If no markdown books are found, fallback to root-level file extraction (`pdf`, `epub`, `djvu`, `mobi`, `chm`) using filenames as titles.
-4. Deduplicate titles.
-5. Match books to subjects in the selected major.
-6. Save new books and enrich metadata.
+Majors:
 
-## Prerequisites
+- GET /api/majors
+- GET /api/majors/:id
 
-- Node.js 18+
-- npm
-- MongoDB (local or remote)
+Subjects:
 
-## Environment Variables
+- GET /api/subjects/:majorId
+- GET /api/subjects/detail/:subjectId
 
-Create `backend/.env`:
+Books:
+
+- GET /api/books/:subjectId
+- POST /api/books/:bookId/refresh-metadata
+- POST /api/books/refresh-metadata/subject/:subjectId
+- POST /api/books/refresh-metadata/major/:majorId
+
+GitHub extraction and reassignment:
+
+- POST /api/github/extract-books
+  - Body: repoUrl, subjectId
+- POST /api/github/extract-by-major
+  - Body: repoUrl, majorName
+  - Returns jobId (async)
+- GET /api/github/extract-jobs/:jobId
+- POST /api/github/rebalance-major
+  - Body: majorName (default Medicine), optional fallbackSubjectName
+
+Suggestions:
+
+- POST /api/suggestions
+- GET /api/suggestions?limit=50
+
+## 7) Extractor Internals
+
+This is the core backend feature.
+
+### Step A: Input validation
+
+The backend validates:
+
+- GitHub repository URL format
+- Target major or subject existence
+
+### Step B: Repository fetch
+
+The extractor fetches markdown files from the repo. If markdown parsing yields no books, it falls back to root-level file extraction (for pdf/epub/djvu/mobi/chm style files).
+
+### Step C: Parsing
+
+Markdown parser supports multiple patterns:
+
+- list entries like Title - Author
+- list entries like Title by Author
+- markdown links and HTML links pointing to book files
+- heading-aware section context
+
+Parser output shape includes:
+
+- title
+- author (if detectable)
+- section context
+- normalized book_url
+
+### Step D: Deduplication
+
+Books are deduplicated by normalized title to reduce duplicates across multiple files.
+
+### Step E: Subject matching
+
+Books are matched to subjects using token overlap and weighted scoring.
+
+Scoring inputs include:
+
+- subject name tokens
+- title tokens
+- section tokens
+- partial token overlap
+
+For medicine rebalancing:
+
+- generic tokens like medical and medicine are de-emphasized
+- fallback assignment can push unmatched books to Medical Ethics
+
+### Step F: Persistence to Atlas
+
+For each matched book:
+
+1. check existing subject+title collision
+2. insert if new
+3. preserve source_url and book_url
+4. store as source github
+
+Result: frontend can render clickable book links directly from stored book_url.
+
+### Step G: Async major extraction jobs
+
+Major-level extraction runs async:
+
+- POST extract-by-major queues job
+- GET extract-jobs polls status
+- Status transitions: queued, running, completed, failed
+
+Current caveat:
+
+- job status is in-memory and not durable across process restart
+- persisted books remain safe in Atlas
+
+## 8) Medical Rebalance Logic
+
+Problem addressed:
+
+- Many medicine books over-clustered in Medical Ethics
+
+Implemented fix:
+
+- Added rebalance endpoint for major-wide reassignment
+- Improved matcher so generic medicine tokens do not dominate
+- Added fallback strategy: unmatched medicine books go to Medical Ethics
+
+Operational endpoint:
+
+- POST /api/github/rebalance-major
+- Example body: { "majorName": "Medicine" }
+
+## 9) Environment Variables
+
+Backend:
+
+- MONGODB_URI
+- GITHUB_TOKEN
+- NODE_ENV
+- CORS_ORIGINS
+- PORT (optional on Render)
+
+Frontend:
+
+- VITE_API_URL
+
+Local backend example:
 
 ```env
-MONGODB_URI=mongodb://localhost:27017/opencurriculum
+MONGODB_URI=mongodb://127.0.0.1:27017/opencurriculum
+GITHUB_TOKEN=
 PORT=5000
-GITHUB_TOKEN=your_github_token_optional
 NODE_ENV=development
 CORS_ORIGINS=http://localhost:5173
 ```
 
-Notes:
-- `GITHUB_TOKEN` is strongly recommended to avoid low unauthenticated rate limits.
-- `CORS_ORIGINS` accepts a comma-separated list of browser origins that may call the API.
-- Rotate tokens immediately if accidentally exposed.
+Render backend example:
 
-## Render Deployment Notes
+```env
+MONGODB_URI=mongodb+srv://USER:PASS@cluster.mongodb.net/opencurriculum?retryWrites=true&w=majority
+GITHUB_TOKEN=...
+NODE_ENV=production
+CORS_ORIGINS=https://opencurriculum.onrender.com
+```
 
-- Whitelist these Render outbound CIDR ranges in MongoDB Atlas Network Access:
-  - `74.220.48.0/24`
-  - `74.220.56.0/24`
-- Set backend `CORS_ORIGINS` on Render to your deployed frontend origin.
-- Set frontend `VITE_API_URL` on Render to your backend URL with `/api` appended.
-- Use the backend health check at `/health` after deployment to verify startup independently of the API routes.
+Render frontend example:
 
-## Installation
+```env
+VITE_API_URL=https://opencurriculum-api-o5sh.onrender.com/api
+```
 
-### 1. Backend
+## 10) Deployment Notes
+
+Render backend service:
+
+- type: web
+- runtime: node
+- rootDir: backend
+- buildCommand: npm install
+- startCommand: npm start
+
+Render frontend service:
+
+- type: static
+- runtime: static
+- rootDir: frontend
+- buildCommand: npm install --include=dev && npm run build
+- staticPublishPath: dist
+- SPA rewrite to index.html
+
+MongoDB Atlas network:
+
+- allow Render egress CIDR ranges for your region
+- ensure DB user credentials match MONGODB_URI
+
+## 11) Scripts
+
+Backend scripts:
+
+- npm start
+- npm run dev
+- npm run seed
+- npm run extract:admin
+- npm run backfill:book-links
+- npm run backfill:authors
+
+Frontend scripts:
+
+- npm run dev
+- npm run build
+- npm run preview
+
+## 12) Local Development
+
+Install:
 
 ```bash
 cd backend
 npm install
-```
-
-### 2. Frontend
-
-```bash
-cd frontend
+cd ../frontend
 npm install
 ```
 
-## Running The App
-
-### Start backend
+Run backend:
 
 ```bash
 cd backend
 npm run dev
 ```
 
-Backend starts on `http://localhost:5000` by default.
-
-### Start frontend
+Run frontend:
 
 ```bash
 cd frontend
 npm run dev
 ```
 
-Frontend runs on Vite dev server and proxies API calls via relative `/api` paths.
+## 13) Operations Guide
 
-## Database Seeding
+### Add new books for a major
 
-Seed is automatic when backend starts and no majors exist.
+1. Call POST /api/github/extract-by-major with repoUrl and majorName.
+2. Poll GET /api/github/extract-jobs/:jobId until completed.
+3. Verify books via GET /api/books/:subjectId.
 
-Manual seed command:
+### Rebalance a major
 
-```bash
-cd backend
-npm run seed
-```
+1. Call POST /api/github/rebalance-major.
+2. Verify moved distribution by checking key subject endpoints.
 
-## API Endpoints
+### Refresh metadata
 
-### Majors
-- `GET /api/majors`
-- `GET /api/majors/:id`
+- run refresh by single book, subject, or major endpoints
 
-### Subjects
-- `GET /api/subjects/:majorId`
-- `GET /api/subjects/detail/:subjectId`
+## 14) Design Summary
 
-### Books
-- `GET /api/books/:subjectId`
-- `POST /api/books/:bookId/refresh-metadata`
-- `POST /api/books/refresh-metadata/subject/:subjectId`
-- `POST /api/books/refresh-metadata/major/:majorId`
+Key design decisions:
 
-### GitHub extraction endpoint
-A GitHub extraction controller exists (`routes/github.js`, `controllers/githubController.js`) for:
-- `POST /api/github/extract-books`
+- The system ingests unstructured repository content and converts it into structured curriculum resources.
+- Subject assignment is heuristic and score-based with domain-specific fallback behavior.
+- MongoDB Atlas is the durable source of truth, independent of application restarts.
+- Async extraction jobs reduce request timeout risk on low-resource hosting tiers.
+- Rebalancing workflows correct assignment quality after ingestion.
 
-If you want this HTTP endpoint active, ensure it is mounted in `backend/src/index.js`.
+## 15) Limitations and Next Steps
 
-## Backend Scripts
+Current limitations:
 
-From `backend/package.json`:
+- extraction job status is in-memory
+- matcher is heuristic, not semantic-embedding based
+- metadata quality depends on external source availability
 
-- `npm run start` -> start API
-- `npm run dev` -> start API with nodemon
-- `npm run seed` -> seed majors/subjects
-- `npm run extract:admin` -> run admin extraction CLI
-- `npm run backfill:book-links` -> old backfill (repo URL fallback)
-- `npm run backfill:authors` -> author backfill script
+Recommended improvements:
 
-Additional script in repo:
-- `node src/backfillDirectLinks.js` -> force-update `book_url` to direct file URLs when available
+- persist job state in MongoDB
+- add auth/role checks for admin extraction endpoints
+- move extraction to queue worker (Redis/BullMQ)
+- add automated parser and matcher tests
+- add admin UI for extraction and rebalance workflows
 
-## Admin Extraction Usage
+## 16) Security and Reliability
 
-```bash
-cd backend
-node src/adminExtract.js --repo "https://github.com/owner/repo" --major "Major Name"
-```
+- Never expose backend secrets in frontend.
+- Do not commit .env files.
+- Rotate leaked tokens immediately.
+- Keep Atlas backups/snapshots enabled.
+- Keep CORS_ORIGINS restricted to trusted frontend domains.
 
-Example:
+---
 
-```bash
-node src/adminExtract.js --repo "https://github.com/manjunath5496/Mathematics-Books" --major "Mathematics"
-```
-
-## Frontend Routes
-
-- `/` -> majors homepage
-- `/major/:majorId` -> timeline for selected major
-- `/subject/:subjectId` -> subject detail and books
-
-## UI Notes
-
-- Major cards use minimalist icons by major.
-- Book rows are expandable; details show author and synopsis.
-- On expanding a book with missing metadata, frontend can trigger metadata refresh and render updated details.
-
-## Operational Workflows
-
-### Add books for a major from GitHub
-1. Run admin extraction with repo URL + major.
-2. Optionally run direct link backfill.
-3. Refresh metadata by major/subject as needed.
-
-### Restrict a major to approved repositories
-Use MongoDB cleanup scripts to delete books for that major where `source_url` is not in your allow-list.
-
-### Verify source distribution
-Query grouped counts by `source_url` for all books under a major's subjects.
-
-## Troubleshooting
-
-### No books extracted from a repo
-- Cause: README has no parseable markdown list.
-- Current behavior: extraction falls back to root-level book files when available.
-
-### Books show Unknown Author or generic synopsis
-- Run metadata refresh endpoints (single/subject/major).
-- Some titles have no strong external metadata match; fallback content may remain.
-
-### GitHub rate limits
-- Configure `GITHUB_TOKEN` in `backend/.env`.
-
-### Route mismatch for `/api/github/extract-books`
-- If endpoint returns 404, mount `github` router in `backend/src/index.js`.
-
-## Security Notes
-
-- Never commit `.env` to version control.
-- Rotate any leaked tokens immediately.
-- Respect copyright and licensing of external content repositories.
-
-## Future Improvements
-
-- Add scheduler/queue for periodic metadata refresh.
-- Add admin UI for repo ingestion and source allow-list management.
-- Improve subject matching confidence and manual reassignment tools.
-- Add automated tests for parser patterns and metadata service fallbacks.
+OpenCurriculum is structured as a production-ready educational data pipeline that combines parsing, matching, persistence, API design, deployment operations, and post-ingestion correction workflows in one system.
