@@ -54,8 +54,8 @@ async function runExtractByMajor(repoUrl, majorName) {
   const assignments = assignBooksToSubjects(allBooks, subjects);
   let totalSaved = 0;
 
-  for (const [subjectId, books] of assignments) {
-    for (const book of books) {
+  for (const [subjectId, entry] of assignments) {
+    for (const book of entry.books) {
       const exists = await Book.findOne({
         subject_id: subjectId,
         title: { $regex: new RegExp(`^${escapeRegex(book.title)}$`, 'i') },
