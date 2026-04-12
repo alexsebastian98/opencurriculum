@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Terminal, Calculator, Wrench, Zap, Heart, BookOpen } from 'lucide-react'
+import { Terminal, Calculator, Wrench, Zap, Heart, BookOpen, Briefcase, BarChart3, ScrollText } from 'lucide-react'
 
 const MAJOR_META = {
   'Computer Science':       { Icon: Terminal,    desc: 'Algorithms, systems, and software engineering.' },
@@ -7,6 +7,9 @@ const MAJOR_META = {
   'Mechanical Engineering': { Icon: Wrench,      desc: 'Mechanics, thermodynamics, and design.' },
   'Electrical Engineering': { Icon: Zap,         desc: 'Circuits, signals, and power systems.' },
   'Medicine':               { Icon: Heart,       desc: 'Anatomy, physiology, and clinical practice.' },
+  'Business Administration': { Icon: Briefcase,  desc: 'Management, finance, and organizational strategy.' },
+  'Economics':              { Icon: BarChart3,   desc: 'Markets, policy, and quantitative economic analysis.' },
+  'Philosophy':             { Icon: ScrollText,  desc: 'Logic, ethics, and the history of ideas.' },
 }
 
 export default function MajorCard({ major }) {

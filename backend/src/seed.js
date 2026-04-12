@@ -55,10 +55,42 @@ const SEED_DATA = {
     { year: 4, semester: 1, subjects: ['Cardiology', 'Neurology', 'Clinical Rotations I'] },
     { year: 4, semester: 2, subjects: ['Emergency Medicine', 'Psychiatry', 'Clinical Rotations II'] },
   ],
+  'Business Administration': [
+    { year: 1, semester: 1, subjects: ['Principles of Management', 'Financial Accounting', 'Business Mathematics'] },
+    { year: 1, semester: 2, subjects: ['Microeconomics for Business', 'Business Communication', 'Marketing Fundamentals'] },
+    { year: 2, semester: 1, subjects: ['Managerial Accounting', 'Organizational Behavior', 'Business Statistics'] },
+    { year: 2, semester: 2, subjects: ['Corporate Finance', 'Operations Management', 'Business Law'] },
+    { year: 3, semester: 1, subjects: ['Human Resource Management', 'Consumer Behavior', 'Management Information Systems'] },
+    { year: 3, semester: 2, subjects: ['Strategic Management', 'Supply Chain Management', 'Entrepreneurship'] },
+    { year: 4, semester: 1, subjects: ['International Business', 'Project Management', 'Business Ethics'] },
+    { year: 4, semester: 2, subjects: ['Leadership Seminar', 'Capstone in Business Administration'] },
+  ],
+  'Economics': [
+    { year: 1, semester: 1, subjects: ['Principles of Microeconomics', 'Calculus for Economics', 'Introduction to Economic History'] },
+    { year: 1, semester: 2, subjects: ['Principles of Macroeconomics', 'Statistics for Social Sciences', 'Introduction to Public Policy'] },
+    { year: 2, semester: 1, subjects: ['Intermediate Microeconomics', 'Intermediate Macroeconomics', 'Econometrics I'] },
+    { year: 2, semester: 2, subjects: ['Mathematical Economics', 'Money and Banking', 'Econometrics II'] },
+    { year: 3, semester: 1, subjects: ['International Economics', 'Game Theory', 'Labor Economics'] },
+    { year: 3, semester: 2, subjects: ['Development Economics', 'Public Economics', 'Industrial Organization'] },
+    { year: 4, semester: 1, subjects: ['Behavioral Economics', 'Financial Economics', 'Research Methods in Economics'] },
+    { year: 4, semester: 2, subjects: ['Advanced Economic Policy', 'Economics Thesis Seminar'] },
+  ],
+  'Philosophy': [
+    { year: 1, semester: 1, subjects: ['Introduction to Philosophy', 'Critical Thinking', 'Ancient Philosophy'] },
+    { year: 1, semester: 2, subjects: ['Logic I', 'Ethics', 'Early Modern Philosophy'] },
+    { year: 2, semester: 1, subjects: ['Metaphysics', 'Epistemology', 'Philosophy of Religion'] },
+    { year: 2, semester: 2, subjects: ['Logic II', 'Political Philosophy', 'Nineteenth Century Philosophy'] },
+    { year: 3, semester: 1, subjects: ['Philosophy of Mind', 'Philosophy of Science', 'Existentialism'] },
+    { year: 3, semester: 2, subjects: ['Aesthetics', 'Contemporary Analytic Philosophy', 'Applied Ethics'] },
+    { year: 4, semester: 1, subjects: ['Seminar in Moral Philosophy', 'Comparative Philosophy', 'Research Writing in Philosophy'] },
+    { year: 4, semester: 2, subjects: ['Senior Thesis', 'Special Topics in Philosophy'] },
+  ],
 };
 
 async function runSeed() {
   console.log('Seeding database…');
+  const totalMajors = Object.keys(SEED_DATA).length;
+
   for (const [majorName, yearData] of Object.entries(SEED_DATA)) {
     const major = await Major.findOneAndUpdate(
       { name: majorName },
@@ -76,7 +108,7 @@ async function runSeed() {
       }
     }
   }
-  console.log('Seed complete — 5 majors and all subjects inserted.');
+  console.log(`Seed complete — ${totalMajors} majors and all subjects inserted.`);
 }
 
 // Run directly: node src/seed.js
